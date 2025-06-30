@@ -1,0 +1,286 @@
+version: 6
+title: iGOTM simulation            # simulation title used in output [default=GOTM simulation]
+location:
+   name: iGOTM station             # station name used in output [default=GOTM site]
+   latitude: {{latitude}}          # latitude [degrees North; min=-90.0; max=90.0; default=0.0]
+   longitude: {{longitude}}        # longitude [degrees East; min=-360.0; max=360.0; default=0.0]
+   depth: {{depth}}                # water depth [m; min=0.0; default=100.0]
+time:
+   start: {{start}}                # start date and time [yyyy-mm-dd HH:MM:SS; default=2017-01-01 00:00:00]
+   stop: {{stop}}                  # stop date and time [yyyy-mm-dd HH:MM:SS; default=2018-01-01 00:00:00]
+   dt: {{dt}}                      # time step for integration [s; min=0.0; default=3600.0]
+grid:
+   nlev: {{nlev}}                  # number of layers [min=1; default=100]
+   method: file_sigma              # layer thicknesses [0=equal by default with optional zooming, 1=prescribed relative fractions, 2=prescribed thicknesses; default=0]
+   ddu: 1.0                        # surface zooming [dimensionless; min=0.0; default=0.0]
+   ddl: 1.0                        # bottom zooming [dimensionless; min=0.0; default=0.0]
+   file: {{forcing_dir}}grid.dat
+temperature:                       # temperature profile used for initialization and optionally relaxation
+   method: file                    # method [0=off, 1=analytical, 2=from file; default=0]
+   file: {{forcing_dir}}tprof.dat                 # path to file with series of profiles [default=]
+   relax:                          # relax model temperature to observed/prescribed value
+      tau: {{relax}}               # time scale for interior layer [s; min=0.0; default=1.00000000E+15]
+salinity:                          # salinity profile used for initialization and optionally relaxation
+   method: file                    # method [0=off, 1=analytical, 2=from file; default=0]
+   file: {{forcing_dir}}sprof.dat                 # path to file with series of profiles [default=]
+   relax:                          # relax model salinity to observed/prescribed value
+      tau: {{relax}}               # time scale for interior layer [s; min=0.0; default=1.00000000E+15]
+surface:
+   fluxes:                         # heat and momentum fluxes
+      method: Fairall              # method to calculate fluxes from meteorology [0=use prescribed fluxes, 1=Kondo (1975), 2=Fairall et al. (1996); default=0]
+   u10:                            # wind speed in West-East direction @ 10 m
+      method: file                 # method [0=constant, 2=from file; default=0]
+      file: {{forcing_dir}}meteo.dat              # path to file with time series [default=]
+      column: 1                    # index of column to read from [default=1]
+   v10:                            # wind speed in South-North direction @ 10 m
+      method: file                 # method [0=constant, 2=from file; default=0]
+      file: {{forcing_dir}}meteo.dat              # path to file with time series [default=]
+      column: 2                    # index of column to read from [default=1]
+   airp:                           # air pressure
+      method: file                 # method [0=constant, 2=from file; default=0]
+      file: {{forcing_dir}}meteo.dat              # path to file with time series [default=]
+      column: 3                    # index of column to read from [default=1]
+      scale_factor: 100.0          # scale factor to be applied to values read from file [default=1.0]
+   airt:                           # air temperature @ 2 m
+      method: file                 # method [0=constant, 2=from file; default=0]
+      file: {{forcing_dir}}meteo.dat              # path to file with time series [default=]
+      column: 4                    # index of column to read from [default=1]
+      offset: {{temp_offset}}
+   hum:                            # humidity @ 2 m
+      method: file                 # method [0=constant, 2=from file; default=0]
+      file: {{forcing_dir}}meteo.dat              # path to file with time series [default=]
+      column: 5                    # index of column to read from [default=1]
+      type: dew_point              # humidity metric [1=relative humidity (%), 2=wet-bulb temperature, 3=dew point temperature, 4=specific humidity (kg/kg); default=1]
+   cloud:                          # cloud cover
+      method: file                 # method [0=constant, 2=from file; default=0]
+      file: {{forcing_dir}}meteo.dat              # path to file with time series [default=]
+      column: 6                    # index of column to read from [default=1]
+   swr:                            # shortwave radiation
+      method: {{swr_method}}       # method [0=constant, 2=from file, 3=from time, location and cloud cover; default=0]
+      file: {{forcing_dir}}ssr.dat                # path to file with time series [default=]
+      column: 1                    # index of column to read from [default=1]
+   precip:                         # precipitation
+      method: file                 # method [0=constant, 2=from file; default=0]
+      file: {{forcing_dir}}precip.dat             # path to file with time series [default=]
+      column: 1                    # index of column to read from [default=1]
+      flux_impact: true            # include effect on fluxes of sensible heat and momentum [default=false]
+   calc_evaporation: true          # calculate evaporation from meteorological conditions [default=false]
+   longwave_radiation:             # longwave back radiation
+      method: clark                # method [0=from file, 1=Clark, 2=Hastenrath, 3=Bignami, 4=Berliand; default=1]
+      file:                        # path to file with time series [default=]
+      column: 1                    # index of column to read from [default=1]
+   albedo:
+      method: {{'constant' if swr_method == 'file' else 'payne'}}    # method to compute albedo [0=constant, 1=Payne (1972), 2=Cogley (1979); default=1]
+      constant_value: 0.0          # constant value to use throughout the simulation [fraction; min=0.0; max=1.0; default=0.0]
+   roughness:
+      charnock: false              # use Charnock (1955) roughness adaptation [default=false]
+      charnock_val: 1400.0         # empirical constant for roughness adaptation [dimensionless; min=0.0; default=1400.0]
+      z0s_min: 0.02                # hydrodynamic roughness (minimum value if Charnock adaptation is used) [m; min=0.0; default=0.02]
+bottom:
+   h0b: {{h0b}}                    # physical bottom roughness [m; min=0.0; default=0.05]
+light_extinction:
+   method: {{light_extinction_method}} # water type [1=Jerlov type I, 2=Jerlov type 1 (upper 50 m), 3=Jerlov type IA, 4=Jerlov type IB, 5=Jerlov type II, 6=Jerlov type III, 7=custom; default=1]
+   A:                              # non-visible fraction of shortwave radiation
+      method: constant             # method [0=constant, 2=from file; default=0]
+      constant_value: {{'%.2f' % A}}        # value to use throughout the simulation [fraction; min=0.0; max=1.0; default=0.7]
+      file:                        # path to file with time series [default=]
+      column: 1                    # index of column to read from [default=1]
+   g1:                             # e-folding depth of non-visible shortwave radiation
+      method: constant             # method [0=constant, 2=from file; default=0]
+      constant_value: {{'%.2f' % g1}}       # value to use throughout the simulation [m; min=0.0; default=0.4]
+      file:                        # path to file with time series [default=]
+      column: 1                    # index of column to read from [default=1]
+   g2:                             # e-folding depth of visible shortwave radiation
+      method: constant             # method [0=constant, 2=from file; default=0]
+      constant_value: {{'%.2f' % g2}}       # value to use throughout the simulation [m; min=0.0; default=8.0]
+      file:                        # path to file with time series [default=]
+      column: 1                    # index of column to read from [default=1]
+turbulence:
+   turb_method: second_order       # turbulence closure [0=convective adjustment, 2=first-order, 3=second-order; default=3]
+   tke_method: tke                 # turbulent kinetic energy equation [1=algebraic length scale equation, 2=differential equation for tke (k-epsilon style), 3=differential equation for q^2/2 (Mellor-Yamada style); default=2]
+   len_scale_method: dissipation   # dissipative length scale [1=parabolic, 2=triangular, 3=Xing and Davies (1995), 4=Robert and Ouellet (1987), 5=Blackadar (two boundaries) (1962), 6=Bougeault and Andre (1986), 7=Eifler and Schrimpf (ISPRAMIX) (1992), 8=dynamic dissipation rate equation, 9=dynamic Mellor-Yamada q^2 l-equation, 10=generic length scale (GLS); default=8]
+   stab_method: schumann_gerz      # stability functions [1=constant, 2=Munk and Anderson (1954), 3=Schumann and Gerz (1995), 4=Eifler and Schrimpf (1992); default=3]
+   turb_param:
+      k_min: {{k_min}}             # minimum turbulent kinetic energy [m^2/s^2; min=0.0; default=1.00000000E-06]
+mimic_3d:                          # effects of horizontal gradients
+   ext_pressure:                   # external pressure
+      type: elevation              # formulation [0=horizontal gradient in surface elevation, 1=horizontal velocities at given height above bed, 2=vertically averaged horizontal velocities; default=0]
+      dpdx:                        # pressure in West-East direction
+         method: {{ext_pressure_method}} # method [0=constant, 1=from tidal constituents, 2=from file; default=0]
+         constant_value: 0.0       # value to use throughout the simulation [default=0.0]
+         file: {{forcing_dir}}ext_press.dat       # path to file with time series [default=]
+         column: 2                 # index of column to read from [default=1]
+      dpdy:                        # pressure in South-North direction
+         method: {{ext_pressure_method}}                 # method [0=constant, 1=from tidal constituents, 2=from file; default=0]
+         constant_value: 0.0       # value to use throughout the simulation [default=0.0]
+         file: {{forcing_dir}}ext_press.dat       # path to file with time series [default=]
+         column: 3                 # index of column to read from [default=1]
+      h:                           # height above bed
+         method: {{ext_pressure_method}}                 # method [0=constant, 2=from file; default=0]
+         constant_value: 0.0       # value to use throughout the simulation [m; min=0.0; default=0.0]
+         file: {{forcing_dir}}ext_press.dat       # path to file with time series [default=]
+         column: 1                 # index of column to read from [default=1]
+   zeta:                           # surface elevation
+      method: constant             # method [0=constant, 1=from tidal constituents, 2=from file; default=0]
+      constant_value: 0.0          # value to use throughout the simulation [m; default=0.0]
+      file: {{forcing_dir}}zeta.dat               # path to file with time series [default=]
+      column: 1                    # index of column to read from [default=1]
+fabm:                              # Framework for Aquatic Biogeochemical Models
+   use: {{'false' if bgc in ('off', 'profiles', None) else 'true'}}                      # enable FABM [default=false]
+   freshwater_impact: true         # enable dilution/concentration by precipitation/evaporation [default=true]
+   feedbacks:                      # feedbacks to physics
+      shade: false                 # interior light absorption [default=false]
+      albedo: false                # surface albedo [default=false]
+      surface_drag: false          # surface drag [default=false]
+   repair_state: true              # clip state to minimum/maximum boundaries [default=false]
+   input:
+{% if bgc == 'mops' %}      ice_area_fraction: 0.0
+      mole_fraction_of_carbon_dioxide_in_air: 400.0
+      din/c:
+        method: file
+        file: {{forcing_dir}}nitrate.dat
+      pho/c:
+        method: file
+        file: {{forcing_dir}}phosphate.dat
+      oxy/c:
+        method: file
+        file: {{forcing_dir}}oxygen.dat
+      carbon/c:
+        method: file
+        file: {{forcing_dir}}TCO2.dat
+{% elif bgc == 'pisces' %}      ice_area_fraction: 0.0
+      mole_fraction_of_carbon_dioxide_in_air: 400.0
+      no3/c:
+        method: file
+        file: {{forcing_dir}}nitrate.dat
+        scale_factor: 7.625e-6
+      po4/c:
+        method: file
+        file: {{forcing_dir}}phosphate.dat
+        scale_factor: 122.e-6
+      sil/si:
+        method: file
+        file: {{forcing_dir}}silicate.dat
+        scale_factor: 1e-6
+      oxy/O2:
+        method: file
+        file: {{forcing_dir}}oxygen.dat
+        scale_factor: 1e-6
+      carbonate/DIC:
+        method: file
+        file: {{forcing_dir}}TCO2.dat
+        scale_factor: 1e-6
+      carbonate/Alkalini:
+        method: file
+        file: {{forcing_dir}}TAlk.dat
+        scale_factor: 1e-6
+{% elif bgc == 'ihamocc' %}      nitrogen/ano3:
+        method: file
+        file: {{forcing_dir}}nitrate.dat
+        scale_factor: 1e-6
+      phosph/c:
+        method: file
+        file: {{forcing_dir}}phosphate.dat
+        scale_factor: 1e-6
+      silica/si:
+        method: file
+        file: {{forcing_dir}}silicate.dat
+        scale_factor: 1e-6
+      oxygen/oxygen:
+        method: file
+        file: {{forcing_dir}}oxygen.dat
+        scale_factor: 1e-6
+      carbon/sco212:
+        method: file
+        file: {{forcing_dir}}TCO2.dat
+        scale_factor: 1e-6
+      carbon/alkali:
+        method: file
+        file: {{forcing_dir}}TAlk.dat
+        scale_factor: 1e-6
+{% elif bgc == 'ersem' %}      absorption_of_silt: 0.05
+      mole_fraction_of_carbon_dioxide_in_air: 400.0
+      N3/n:
+        method: file
+        file: {{forcing_dir}}nitrate.dat
+      N1/p:
+        method: file
+        file: {{forcing_dir}}phosphate.dat
+      N5/s:
+        method: file
+        file: {{forcing_dir}}silicate.dat
+      O2/o:
+        method: file
+        file: {{forcing_dir}}oxygen.dat
+      O3/c:
+        method: file
+        file: {{forcing_dir}}TCO2.dat
+      O3/TA:
+        method: file
+        file: {{forcing_dir}}TAlk.dat
+{% elif bgc == 'bfm' %}      mole_fraction_of_carbon_dioxide_in_air: 400.0
+      N3/n:
+        method: file
+        file: {{forcing_dir}}nitrate.dat
+      N1/p:
+        method: file
+        file: {{forcing_dir}}phosphate.dat
+      N5/s:
+        method: file
+        file: {{forcing_dir}}silicate.dat
+      O2/o:
+        method: file
+        file: {{forcing_dir}}oxygen.dat
+      O3/c:
+        method: file
+        file: {{forcing_dir}}TCO2.dat
+        scale_factor: 12.011
+      O3h/h:
+        method: file
+        file: {{forcing_dir}}TAlk.dat
+{% elif bgc == 'ecosmo' %}      mole_fraction_of_carbon_dioxide_in_air: 400.0
+      ECO/no3:
+        method: file
+        file: {{forcing_dir}}nitrate.dat
+        scale_factor: 79.56625  # C_Cmg * C_N = 12.01 * 106/16
+      ECO/pho:
+        method: file
+        file: {{forcing_dir}}phosphate.dat
+        scale_factor: 1273.06  # C_Cmg * C_P = 12.01 * 106
+      ECO/sil:
+        method: file
+        file: {{forcing_dir}}silicate.dat
+        scale_factor: 79.56625  # C_Cmg * C_SiO = 12.01 * 106/16
+      ECO/oxy:
+        method: file
+        file: {{forcing_dir}}oxygen.dat
+      CO2/c:
+        method: file
+        file: {{forcing_dir}}TCO2.dat
+      CO2/TA:
+        method: file
+        file: {{forcing_dir}}TAlk.dat
+{% elif bgc == 'ergom' %}      msi_ergom1/nn:
+        method: file
+        file: {{forcing_dir}}nitrate.dat
+      msi_ergom1/po:
+        method: file
+        file: {{forcing_dir}}phosphate.dat
+      msi_ergom1/o2:
+        method: file
+        file: {{forcing_dir}}oxygen.dat
+{% endif %}eq_state:                          # equation of state
+   method: Jackett                 # formula [1=UNESCO, 2=Jackett et al. (2005); default=2]
+   form: full                      # implementation [1=full with in-situ temperature/density, 2=full with potential temperature/density, 3=linearized at T0,S0,p0, 4=linearized at T0,S0,p0,dtr0,dsr0; default=1]
+restart:
+   load: false                     # initialize simulation with state stored in restart.nc [default=false]
+output:
+   result:                         # path of output file, excluding extension
+      format: netcdf               # format [text, netcdf; default=netcdf]
+      time_unit: day               # time unit [second, hour, day, month, year, dt=model time step; default=day]
+      time_step: 1                 # number of time units between output [min=1; default=1]
+      time_method: mean            # treatment of time dimension [point=instantaneous, mean, integrated; default=point]
+      variables:
+      - source: h                  # variable name in model
+{% for variable_name in output %}      - source: {{variable_name}}
+{% endfor %}

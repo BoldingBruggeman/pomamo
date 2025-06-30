@@ -11,10 +11,9 @@ from ruamel import yaml
 import numpy as np
 import jinja2
 
-from datasources import woa, glodap, era, tpxo9, cci_sst, cci_oc
+from pomamo.datasources import woa, glodap, era, tpxo9, cci_sst, cci_oc
 
-simulation_root = os.path.join(os.path.dirname(__file__), "simulations")
-template_root = os.path.join(os.path.dirname(__file__), "gotm-setup-template")
+template_root = os.path.join(os.path.dirname(__file__), "setup-template")
 
 default_settings = {
     "relax": 1.0e15,
